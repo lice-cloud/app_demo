@@ -24,6 +24,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from backend import __version__ as CURRENT_VERSION
+
+
+def _bump_patch_version(v: str) -> str:
+    """生成一个比当前版本号高 patch 一级的测试版本。"""
+    parts = [int(x) for x in v.split(".")]
+    parts[-1] += 1
+    return ".".join(str(x) for x in parts)
+
+
 # 在导入 updater 前设置环境变量，指向本地模拟服务
 MOCK_PORT = 8791
 os.environ["APP_DEMO_UPDATE_API"] = f"http://127.0.0.1:{MOCK_PORT}/releases"
@@ -77,7 +87,7 @@ def main():
     server_dir = Path(tempfile.mkdtemp(prefix="app_demo_mock_"))
     print(f"[Test] 模拟服务器目录: {server_dir}")
 
-    new_version = "0.1.1"
+    new_version = _bump_patch_version(CURRENT_VERSION)
     zip_name, size = build_fake_release(server_dir, new_version)
     print(f"[Test] 生成更新包: {zip_name} ({size} bytes)")
 
