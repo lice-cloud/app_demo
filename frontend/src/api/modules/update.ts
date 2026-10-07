@@ -9,7 +9,7 @@ export interface UpdateCheckResult {
 }
 
 export interface UpdateStatus {
-  phase: 'idle' | 'checking' | 'downloading' | 'verifying' | 'installing' | 'done' | 'error'
+  phase: 'idle' | 'checking' | 'downloading' | 'verifying' | 'installing' | 'ready' | 'done' | 'error'
   percent: number
   bytes_done: number
   bytes_total: number

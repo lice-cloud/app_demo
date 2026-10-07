@@ -37,9 +37,9 @@
       </div>
     </div>
 
-    <!-- 成功 -->
-    <div v-else-if="phase === 'done'" class="update-done">
-      <el-result icon="success" title="更新完成" sub-title="请重启应用以加载新版本" />
+    <!-- 成功 / 就绪 -->
+    <div v-else-if="phase === 'done' || phase === 'ready'" class="update-done">
+      <el-result icon="success" :title="phase === 'done' ? '更新完成' : '更新已就绪'" sub-title="请重启应用以加载新版本" />
     </div>
 
     <!-- 失败 -->
@@ -52,7 +52,7 @@
         <el-button @click="onLater">稍后</el-button>
         <el-button type="primary" @click="onApply">立即更新</el-button>
       </div>
-      <div v-else-if="phase === 'done'">
+      <div v-else-if="phase === 'done' || phase === 'ready'">
         <el-button type="primary" @click="onRestart">重启应用</el-button>
       </div>
       <div v-else-if="phase === 'error'">
@@ -103,6 +103,7 @@ const visible = computed({
 const title = computed(() => {
   if (phase.value === 'idle') return `发现新版本 v${latestVersion.value}`
   if (phase.value === 'done') return '更新完成'
+  if (phase.value === 'ready') return '更新已就绪'
   if (phase.value === 'error') return '更新失败'
   return '正在更新'
 })
@@ -116,7 +117,7 @@ const renderedNotes = computed(() => {
 
 const progressPercent = computed(() => Math.round(percent.value))
 const isUpdating = computed(() =>
-  ['downloading', 'verifying', 'installing'].includes(phase.value)
+  ['checking', 'downloading', 'verifying', 'installing'].includes(phase.value)
 )
 
 function formatBytes(bytes: number): string {

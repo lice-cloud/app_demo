@@ -27,7 +27,7 @@ export const useUpdateStore = defineStore('update', () => {
   const isUpdating = computed(() =>
     ['checking', 'downloading', 'verifying', 'installing'].includes(phase.value)
   )
-  const canRestart = computed(() => phase.value === 'done')
+  const canRestart = computed(() => phase.value === 'done' || phase.value === 'ready')
 
   // 检查更新
   async function check() {
@@ -82,7 +82,7 @@ export const useUpdateStore = defineStore('update', () => {
         message.value = status.message
         error.value = status.error ?? null
 
-        if (status.phase === 'done' || status.phase === 'error') {
+        if (status.phase === 'done' || status.phase === 'error' || status.phase === 'ready') {
           stopPolling()
           updating.value = false
         }
