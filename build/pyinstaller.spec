@@ -24,6 +24,11 @@ datas = []
 if WEB_DIST.exists():
     datas.append((str(WEB_DIST), "web_dist"))
 
+# 运行时窗口图标（Windows 任务栏/标题栏图标，运行时由 Win32 设置）
+ICON_SRC = ROOT / "build" / "icon.ico"
+if ICON_SRC.exists():
+    datas.append((str(ICON_SRC), "."))
+
 # 隐式导入（FastAPI/uvicorn/pywebview 常见子模块）
 hiddenimports = [
     "uvicorn",

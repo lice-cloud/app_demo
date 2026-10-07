@@ -139,7 +139,17 @@ def main(*, dev_mode: bool = False):
         threading.Thread(target=_force, daemon=True).start()
 
     set_exit_callback(_request_exit)
-    webview.start()
+
+    def _apply_window_icon():
+        """运行时为窗口设置图标（Windows 任务栏/标题栏）。"""
+        try:
+            from backend.core.win_icon import set_window_icon
+
+            set_window_icon()
+        except Exception as e:
+            _debug_log(f"设置窗口图标失败: {e}")
+
+    webview.start(_apply_window_icon)
 
 
 if __name__ == "__main__":
