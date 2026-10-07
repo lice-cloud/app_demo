@@ -152,7 +152,7 @@ jobs:
         with:
           draft: false
           prerelease: false
-          generate_release_notes: true
+          body_path: CHANGELOG.md
           files: |
             artifacts/**/*.zip
             artifacts/**/*.tar.gz
