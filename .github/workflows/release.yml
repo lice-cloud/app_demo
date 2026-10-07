@@ -139,6 +139,9 @@ jobs:
     needs: [ windows, linux ]
     runs-on: ubuntu-latest
     steps:
+      # 必须 checkout，否则 body_path 使用的 CHANGELOG.md 不存在（此前导致 Release body 为空）
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -147,12 +150,40 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f -printf '%p (%s bytes)\n'
 
+      # 只提取当前版本的更新说明，避免把历史版本一并塞进更新弹窗
+      - name: Extract release notes for this version
+        run: |
+          python - <<'PY'
+          import re, pathlib
+          ver = re.search(
+              r'__version__\s*=\s*"([^"]+)"',
+              pathlib.Path("backend/__init__.py").read_text(encoding="utf-8"),
+          ).group(1)
+          text = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
+          out, capture = [], False
+          for ln in text.splitlines():
+              if ln.strip().startswith("## "):
+                  if ver in ln:
+                      capture = True
+                      continue
+                  elif capture:
+                      break
+              if capture:
+                  out.append(ln)
+          body = "\n".join(out).strip()
+          if not body:
+              body = text  # 兜底：使用完整 CHANGELOG
+          pathlib.Path("release_notes.md").write_text(body, encoding="utf-8")
+          print("Release notes for v%s (%d chars):" % (ver, len(body)))
+          print(body)
+          PY
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           draft: false
           prerelease: false
-          body_path: CHANGELOG.md
+          body_path: release_notes.md
           files: |
             artifacts/**/*.zip
             artifacts/**/*.tar.gz
