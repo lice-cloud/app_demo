@@ -4,6 +4,9 @@
 
 发布新版本时，请在本文件顶部新增对应版本的条目。
 
+## v0.1.125
+- 修复 Windows 任务栏图标仍显示默认 WinForms 图标的问题：改为使用 pywebview 原生的 `webview.start(icon=...)` 设置 `Form.Icon`
+
 ## v0.1.124
 - 修复 Windows 任务栏/窗口图标不生效的问题：运行时通过 Win32 将应用图标（`build/icon.ico`）设到窗口，并将图标打包进运行时目录
 

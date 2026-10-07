@@ -140,16 +140,17 @@ def main(*, dev_mode: bool = False):
 
     set_exit_callback(_request_exit)
 
-    def _apply_window_icon():
-        """运行时为窗口设置图标（Windows 任务栏/标题栏）。"""
-        try:
-            from backend.core.win_icon import set_window_icon
+    # pywebview 的 WinForms 后端在创建窗口时会读取 _state['icon'] 设置 Form.Icon，
+    # 任务栏/标题栏图标即来源于此。webview.start 的 icon 参数会写入 _state['icon']。
+    from backend.core.win_icon import _icon_path
 
-            set_window_icon()
-        except Exception as e:
-            _debug_log(f"设置窗口图标失败: {e}")
+    icon_path = _icon_path()
+    if icon_path:
+        _debug_log(f"应用图标路径: {icon_path}")
+    else:
+        _debug_log("未找到应用图标 icon.ico，将使用 exe 自带图标")
 
-    webview.start(_apply_window_icon)
+    webview.start(icon=str(icon_path) if icon_path else None)
 
 
 if __name__ == "__main__":
