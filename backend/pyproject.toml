@@ -1,0 +1,12 @@
+[project]
+name = "app_demo"
+version = __import__("backend").__version__
+requires-python = ">=3.9"
+
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pywebview>=5.3.0",
+    "pyupdater>=4.0.0",
+    "pydantic>=2.9.0",
+]

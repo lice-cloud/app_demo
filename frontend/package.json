@@ -1,0 +1,31 @@
+{
+  "name": "app_demo-frontend",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext .vue,.js,.vuejsx,.ts,.tsx --fix --ignore-pattern node_modules",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.7.3",
+    "dompurify": "^3.2.1",
+    "element-plus": "^2.8.0",
+    "markdown-it": "^14.1.0",
+    "pinia": "^2.2.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/markdown-it": "^14.1.0",
+    "@vitejs/plugin-vue": "^5.2.0",
+    "typescript": "^5.6.0",
+    "unplugin-auto-import": "^0.18.2",
+    "unplugin-vue-components": "^0.27.4",
+    "vite": "^6.0.0",
+    "vite-plugin-dts": "^4.3.0"
+  }
+}

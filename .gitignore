@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# PyInstaller
+build/pyinstaller/
+dist/
+*.spec.bak
+
+# PyUpdater
+backend/pyu-data/
+build/release/
+*.pyu
+
+# Node / Vue
+frontend/node_modules/
+frontend/dist/
+frontend/src/auto-imports.d.ts
+frontend/src/components.d.ts
+backend/web_dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
