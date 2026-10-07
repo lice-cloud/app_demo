@@ -85,7 +85,7 @@ exe = EXE(
     upx=True,
     console=False,  # 桌面应用不显示控制台窗口
     disable_windowed_traceback=False,
-    icon=None,  # 可放置 build/icon.ico 后改为 str(ROOT / "build" / "icon.ico")
+    icon=str(ROOT / "build" / "icon.ico"),
 )
 
 coll = COLLECT(

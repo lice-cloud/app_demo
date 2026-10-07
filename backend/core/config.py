@@ -1,12 +1,6 @@
 import os
 import platform
-import sys
 from pathlib import Path
-
-# 确保能导入 backend 包
-_sys_path = Path(__file__).resolve().parent.parent.parent
-if str(_sys_path) not in sys.path:
-    sys.path.insert(0, str(_sys_path))
 
 from backend import __version__ as CURRENT_VERSION
 

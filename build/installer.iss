@@ -42,8 +42,7 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName={#MyAppName}
-; 如需自定义图标，取消下一行注释并放置 build\icon.ico
-; SetupIconFile=icon.ico
+SetupIconFile=build\icon.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

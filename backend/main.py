@@ -13,8 +13,7 @@ import webview
 
 from backend import __version__
 from backend.core.config import APP_NAME
-from backend.api.v1.health import router as health_router
-from backend.api.v1.update import router as update_router
+from backend.api import api_router
 from backend.core.updater import updater, set_exit_callback
 
 # 打包后资源目录（PyInstaller 使用 sys._MEIPASS 解压目录）
@@ -36,8 +35,7 @@ def find_free_port() -> int:
 
 
 app = FastAPI(title=APP_NAME, version=__version__)
-app.include_router(health_router)
-app.include_router(update_router)
+app.include_router(api_router)
 
 
 # 生产模式：挂载静态资源并托管 SPA 入口

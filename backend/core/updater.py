@@ -11,23 +11,11 @@ import zipfile
 from pathlib import Path
 from typing import Callable, Dict, Any, Optional
 
-# 确保能导入 backend 包
-_sys_path = Path(__file__).resolve().parent.parent.parent
-if str(_sys_path) not in sys.path:
-    sys.path.insert(0, str(_sys_path))
-
-try:
-    from backend import __version__ as CURRENT_VERSION
-except Exception:
-    CURRENT_VERSION = "0.1.0"
+from backend import __version__ as CURRENT_VERSION
 
 import os
 
-try:
-    from backend.core.config import GITHUB_REPO, APP_DATA_DIR as PYU_DATA_DIR
-except Exception:
-    GITHUB_REPO = "lice-cloud/app_demo"
-    PYU_DATA_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "app_demo" / "updater"
+from backend.core.config import GITHUB_REPO, APP_DATA_DIR as PYU_DATA_DIR
 
 # GitHub API 与下载地址（可通过环境变量覆盖，便于本地测试）
 GITHUB_API = os.environ.get(
