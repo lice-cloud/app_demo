@@ -145,19 +145,22 @@ def main(*, dev_mode: bool = False):
     from backend.core.win_icon import _icon_path, set_window_icon
 
     icon_path = _icon_path()
-    if icon_path:
-        _debug_log(f"应用图标路径: {icon_path}")
-    else:
-        _debug_log("未找到应用图标 icon.ico，将使用 exe 自带图标")
+    _debug_log(f"版本: {__version__} | pywebview: {getattr(webview, '__version__', 'unknown')}")
+    _debug_log(f"应用图标路径: {icon_path}")
 
-    def _apply_window_icon():
-        # 兜底：窗口创建后再向窗口发送 WM_SETICON，确保任务栏图标生效
+    def _apply_window_icon_after_shown():
+        """窗口显示后再发送 WM_SETICON，确保句柄已存在。"""
         try:
+            # 等窗口真正显示（winforms Form 句柄已创建）
+            window.events.shown.wait(timeout=15)
             set_window_icon()
         except Exception as e:
             _debug_log(f"运行时设置窗口图标失败: {e}")
 
-    webview.start(_apply_window_icon, icon=str(icon_path) if icon_path else None)
+    # 启动兜底线程，让它在窗口显示后执行
+    threading.Thread(target=_apply_window_icon_after_shown, daemon=True).start()
+
+    webview.start(icon=str(icon_path) if icon_path else None)
 
 
 if __name__ == "__main__":
