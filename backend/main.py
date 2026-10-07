@@ -3,10 +3,11 @@ import socket
 import threading
 import time
 import sys
+import traceback
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import webview
@@ -26,6 +27,16 @@ def get_base_dir() -> Path:
 
 BASE_DIR = get_base_dir()
 WEB_DIST = BASE_DIR / "web_dist"
+
+
+def _debug_log(msg: str):
+    """将启动期关键信息写入 exe 同目录的 app_demo_debug.log，便于排查冻结后问题。"""
+    try:
+        log_path = Path(sys.executable).parent / "app_demo_debug.log"
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
+    except Exception:
+        pass
 
 
 def find_free_port() -> int:
@@ -48,6 +59,9 @@ if WEB_DIST.exists():
 
     @app.get("/{full_path:path}")
     def spa_fallback(full_path: str):
+        # 不拦截 API / 文档等前缀，避免返回 index.html 掩盖后端错误
+        if full_path.startswith(("api", "docs", "openapi.json", "redoc")):
+            raise HTTPException(status_code=404, detail="Not Found")
         # 优先返回静态文件，否则回退到 index.html（支持前端路由）
         target = WEB_DIST / full_path
         if target.is_file():
@@ -69,11 +83,21 @@ def main(*, dev_mode: bool = False):
     # 0. 核对待应用更新（若上次更新已生效则清理暂存）
     updater.reconcile_pending_on_startup()
 
+    # 记录已注册路由，便于排查“无法连接后端”
+    _debug_log("Routes: " + ", ".join(sorted(r.path for r in app.routes if hasattr(r, "path"))))
+
     # 1. 启动 uvicorn 线程
     port = find_free_port()
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info")
-    server = uvicorn.Server(config)
-    server_thread = threading.Thread(target=server.run, daemon=True)
+
+    def _run_server():
+        try:
+            config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info")
+            server = uvicorn.Server(config)
+            server.run()
+        except Exception:
+            _debug_log("uvicorn crashed:\n" + traceback.format_exc())
+
+    server_thread = threading.Thread(target=_run_server, daemon=True)
     server_thread.start()
 
     # 等 FastAPI 就绪

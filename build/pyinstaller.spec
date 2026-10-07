@@ -52,6 +52,7 @@ hiddenimports = [
     "backend.api",
     "backend.api.v1",
     "backend.api.v1.health",
+    "backend.api.v1.settings",
     "backend.api.v1.update",
 ]
 
