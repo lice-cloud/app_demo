@@ -4,6 +4,9 @@
 
 发布新版本时，请在本文件顶部新增对应版本的条目。
 
+## v0.1.123
+- 补充前端 favicon（`frontend/public/favicon.ico`），修复 `index.html` 引用 `./favicon.ico` 产生的 404
+
 ## v0.1.122
 - 修复健康检查接口 `/api/v1/health` 因误删 `import sys` 导致 500、前端提示“无法连接后端服务”的问题
 
