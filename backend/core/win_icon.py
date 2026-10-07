@@ -1,15 +1,15 @@
 """Windows 任务栏/窗口图标设置辅助。
 
-pywebview 的 WinForms 后端会在创建窗口时读取 _state['icon'] 设置 Form.Icon，
-因此主流程通过 webview.start(icon=...) 传入图标路径即可。
-此处额外提供运行时 Win32 兜底：在窗口创建后向窗口发送 WM_SETICON，
-确保即使在个别环境下 Form.Icon 未生效，任务栏图标也能正确显示。
+pywebview 在不同版本/后端下并不稳定暴露窗口句柄属性（_native_window 在新版已不存在），
+因此这里不依赖 pywebview 内部结构，而是直接枚举当前进程的所有顶层窗口，
+向它们发送 WM_SETICON，确保运行中的任务栏/标题栏图标显示应用图标。
+
+同时，主流程仍通过 webview.start(icon=...) 让 pywebview 设置 Form.Icon 作为兜底。
 """
 import ctypes
+import os
 import sys
 from pathlib import Path
-
-import webview
 
 ICON_SMALL = 0
 ICON_BIG = 1
@@ -18,6 +18,9 @@ IMAGE_ICON = 1
 LR_LOADFROMFILE = 0x00000010
 LR_DEFAULTSIZE = 0x00000040
 LR_SHARED = 0x00008000
+GW_OWNER = 4
+GCLP_HICON = -14
+GCLP_HICONSM = -34
 
 
 def _icon_path() -> "Path | None":
@@ -40,24 +43,40 @@ def _icon_path() -> "Path | None":
     return None
 
 
-def _get_hwnd(window):
-    """兼容 edgechromium（HWND 为 int）与 winforms（Form 对象）后端。"""
-    nw = getattr(window, "_native_window", None)
-    if nw is None:
-        return None
-    if isinstance(nw, int):
-        return nw
-    handle = getattr(nw, "Handle", None)
-    if handle is not None:
-        try:
-            return int(handle)
-        except Exception:
-            return None
-    return None
+def _enum_top_windows(pid: int):
+    """枚举属于当前进程、无 owner 的顶层窗口（任务栏按钮所属窗口）。"""
+    user32 = ctypes.windll.user32
+    found = []
+    WINDOWENUMPROC = ctypes.WINFUNCTYPE(
+        ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p
+    )
+
+    proc_id = ctypes.c_uint32()
+
+    def _callback(hwnd, _lparam):
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(proc_id))
+        if proc_id.value == pid:
+            # 顶层窗口（无 owner）才是任务栏对应的窗口
+            if user32.GetWindow(hwnd, GW_OWNER) == 0:
+                found.append(hwnd)
+        return True
+
+    user32.EnumWindows(WINDOWENUMPROC(_callback), 0)
+    # 兜底：若没有无 owner 的窗口，退而求其次取所有本进程顶层可见窗口
+    if not found:
+        def _callback2(hwnd, _lparam):
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(proc_id))
+            if proc_id.value == pid and user32.IsWindowVisible(hwnd):
+                if user32.GetWindow(hwnd, GW_OWNER) == 0:
+                    found.append(hwnd)
+            return True
+
+        user32.EnumWindows(WINDOWENUMPROC(_callback2), 0)
+    return found
 
 
 def set_window_icon():
-    """为所有 pywebview 窗口设置图标（仅 Windows 生效）。"""
+    """为当前进程的顶层窗口设置图标（仅 Windows 生效）。"""
     if sys.platform != "win32":
         return
     icon = _icon_path()
@@ -65,7 +84,7 @@ def set_window_icon():
         return
 
     user32 = ctypes.windll.user32
-    # 注意：ctypes.wintypes 没有 LRESULT，用 c_void_p 代替返回/参数类型即可
+    # 注意：ctypes.wintypes 没有 LRESULT，用 c_void_p 代替返回/参数类型
     user32.LoadImageW.argtypes = [
         ctypes.c_void_p,
         ctypes.c_wchar_p,
@@ -90,10 +109,19 @@ def set_window_icon():
     if not hicon_big and not hicon_small:
         return
 
-    for window in webview.windows:
-        hwnd = _get_hwnd(window)
-        if hwnd:
-            if hicon_big:
-                user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
-            if hicon_small:
-                user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
+    hwnds = _enum_top_windows(os.getpid())
+    if not hwnds:
+        return
+
+    # 同时设置窗口类图标，最大化任务栏/alt-tab 生效概率
+    set_class = getattr(user32, "SetClassLongPtrW", None) or user32.SetClassLongW
+    set_class.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+    set_class.restype = ctypes.c_void_p
+
+    for hwnd in hwnds:
+        if hicon_big:
+            user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
+            set_class(hwnd, GCLP_HICON, hicon_big)
+        if hicon_small:
+            user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
+            set_class(hwnd, GCLP_HICONSM, hicon_small)
