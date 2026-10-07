@@ -4,6 +4,9 @@
 
 发布新版本时，请在本文件顶部新增对应版本的条目。
 
+## v0.1.122
+- 修复健康检查接口 `/api/v1/health` 因误删 `import sys` 导致 500、前端提示“无法连接后端服务”的问题
+
 ## v0.1.121
 - 修复打包版（onedir）缺失 `api/v1/settings` 模块导致启动时 500 的问题（已加入 PyInstaller 隐藏导入）
 - 补全 settings 业务模块缺失的路由定义（`GET /api/v1/settings`）

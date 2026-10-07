@@ -1,3 +1,5 @@
+import sys
+
 from fastapi import APIRouter
 from backend import __version__
 
