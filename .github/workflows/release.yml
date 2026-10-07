@@ -82,6 +82,8 @@ jobs:
   linux:
     name: Build Linux
     runs-on: ubuntu-latest
+    # Linux 构建为尽力而为：即使失败也不阻塞 Windows 发布
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
