@@ -4,6 +4,16 @@
 
 发布新版本时，请在本文件顶部新增对应版本的条目。
 
+## v0.1.131
+- CI 与 Release 工作流对齐：共享 backend / windows / linux 构建 job，仅触发时机不同；版本号统一用 env 管理，避免再漂移
+- Node 版本升级到 24
+- Release 增加 backend 检查 job；CI 增加 Windows 构建（与 Release 一致）
+
+## v0.1.130
+- 修复 Linux 发布产物无法启动：补充 webview.platforms.gtk 隐藏导入；按平台选择窗口图标（Linux 改用 png，避免 .ico 在 GTK 下无法加载）
+- Linux 构建改用系统 python3-gi 与 webkit2gtk-4.1（Ubuntu 24.04 仅提供 4.1），普通安装 pywebview 以恢复 proxy_tools 等纯 Python 依赖
+- CI 新增 Linux 构建 job
+
 ## v0.1.129
 - 任务栏图标修复重新发版（源码与 v0.1.128 一致，纯重新触发 CI 构建）
 
