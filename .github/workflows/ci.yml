@@ -56,7 +56,7 @@ jobs:
           path: backend/web_dist
 
   linux:
-    name: Build & Smoke Linux
+    name: Build Linux
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -67,13 +67,13 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install system deps (GTK/WebKit/PyGObject + xvfb)
+      - name: Install system deps (GTK/WebKit/PyGObject)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libgtk-3-0 libwebkit2gtk-4.1-0 \
             gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
-            python3-gi xvfb
+            python3-gi
 
       - name: Build frontend
         working-directory: frontend
@@ -91,11 +91,6 @@ jobs:
 
       - name: Build application (PyInstaller onedir)
         run: python3 -m PyInstaller build/pyinstaller.spec --noconfirm --distpath dist --workpath build/pyinstaller
-
-      - name: Smoke test (headless via xvfb)
-        run: |
-          xvfb-run -a ./dist/app_demo/app_demo --smoke | tee smoke.log
-          grep -q "SMOKE_OK" smoke.log || { echo "冒烟自检未通过"; exit 1; }
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4

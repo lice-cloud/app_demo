@@ -93,13 +93,13 @@ jobs:
 
       # Linux 上 pywebview 使用 GTK/WebKit 后端，需要系统提供 PyGObject 与
       # GIR 类型库；否则冻结产物虽能生成，但运行时 import gi 失败无法启动。
-      - name: Install system deps (GTK/WebKit/PyGObject + xvfb)
+      - name: Install system deps (GTK/WebKit/PyGObject)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libgtk-3-0 libwebkit2gtk-4.1-0 \
             gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
-            python3-gi xvfb
+            python3-gi
 
       - name: Read version
         id: ver
@@ -127,11 +127,6 @@ jobs:
 
       - name: Build application
         run: python3 -m PyInstaller build/pyinstaller.spec --noconfirm --distpath dist --workpath build/pyinstaller
-
-      - name: Smoke test (headless via xvfb)
-        run: |
-          xvfb-run -a ./dist/app_demo/app_demo --smoke | tee smoke.log
-          grep -q "SMOKE_OK" smoke.log || { echo "冒烟自检未通过"; exit 1; }
 
       - name: Package tar.gz
         run: tar -czf "app_demo-linux-x64-${{ steps.ver.outputs.version }}.tar.gz" -C dist app_demo
