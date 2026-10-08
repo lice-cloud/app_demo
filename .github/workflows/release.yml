@@ -15,9 +15,29 @@ permissions:
 
 env:
   PYTHON_VERSION: '3.12'
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'
 
 jobs:
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install backend deps
+        run: python -m pip install --upgrade pip fastapi uvicorn
+
+      - name: Import check
+        run: |
+          python -c "import sys; sys.path.insert(0, '.'); import backend; from backend.core.updater import updater; from backend.api.v1 import health, update; print('backend ok', backend.__version__)"
+
+      - name: Update flow test (local mock)
+        run: python scripts/test_update_flow.py
+
   windows:
     name: Build Windows
     runs-on: windows-latest
@@ -140,7 +160,7 @@ jobs:
 
   release:
     name: Publish Release
-    needs: [ windows, linux ]
+    needs: [ backend, windows, linux ]
     runs-on: ubuntu-latest
     steps:
       # 必须 checkout，否则 body_path 使用的 CHANGELOG.md 不存在（此前导致 Release body 为空）
