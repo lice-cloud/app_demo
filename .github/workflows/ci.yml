@@ -85,9 +85,9 @@ jobs:
         run: |
           python3 -m pip install --user --upgrade pip
           python3 -m pip install --user pyinstaller fastapi "uvicorn[standard]"
-          # pywebview 运行依赖 PyGObject，已由系统 python3-gi 提供；
-          # --no-deps 避免从 PyPI 拉取与系统 Python 不兼容的 PyGObject 轮子。
-          python3 -m pip install --user pywebview --no-deps
+          # pywebview 的 PyGObject 依赖属于 gtk extra，默认不随普通安装拉取；
+          # 运行时由系统 apt 安装的 python3-gi 提供，避免引入与系统 Python 不兼容的 PyPI 轮子。
+          python3 -m pip install --user pywebview
 
       - name: Build application (PyInstaller onedir)
         run: python3 -m PyInstaller build/pyinstaller.spec --noconfirm --distpath dist --workpath build/pyinstaller
