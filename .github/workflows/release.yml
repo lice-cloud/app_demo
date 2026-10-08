@@ -82,7 +82,9 @@ jobs:
 
   linux:
     name: Build Linux
-    runs-on: ubuntu-latest
+    # 用 22.04 而非 latest(24.04)，使其 glibc(2.35) 低于多数用户系统，
+    # 避免冻结产物因要求 GLIBC_2.38 在新版 Ubuntu 之外的机器上无法运行。
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
