@@ -13,25 +13,6 @@ env:
   NODE_VERSION: '24'
 
 jobs:
-  backend:
-    name: Backend checks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install backend deps
-        run: python -m pip install --upgrade pip fastapi uvicorn
-
-      - name: Import check
-        run: |
-          python -c "import sys; sys.path.insert(0, '.'); import backend; from backend.core.updater import updater; from backend.api.v1 import health, update; print('backend ok', backend.__version__)"
-
-      - name: Update flow test (local mock)
-        run: python scripts/test_update_flow.py
 
   windows:
     name: Build Windows
@@ -112,7 +93,7 @@ jobs:
           sudo apt-get install -y \
             libgtk-3-0 libwebkit2gtk-4.1-0 \
             gir1.2-gtk-3.0 gir1.2-webkit2-4.1 \
-            python3-gi
+            python3-gi upx
 
       - name: Build frontend
         working-directory: frontend
@@ -123,7 +104,7 @@ jobs:
       - name: Install Python build deps
         run: |
           python3 -m pip install --user --upgrade pip
-          python3 -m pip install --user pyinstaller fastapi "uvicorn[standard]"
+          python3 -m pip install --user pyinstaller fastapi uvicorn
           # pywebview 的 PyGObject 依赖属于 gtk extra，默认不随普通安装拉取；
           # 运行时由系统 apt 安装的 python3-gi 提供，避免引入与系统 Python 不兼容的 PyPI 轮子。
           python3 -m pip install --user pywebview

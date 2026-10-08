@@ -85,6 +85,11 @@ a = Analysis(
     noarchive=False,
 )
 
+# 剔除 GTK 自带、但 webview 应用用不到的图标/窗口主题数据（约 225M 未压缩）。
+# 这些仅用于 GTK 原生控件与桌面主题，本应用 UI 是网页，缺失时会回退到内置默认，不影响功能。
+_EXCLUDE_DATA_SUBSTR = ("share/icons/", "share/themes/")
+a.datas = [d for d in a.datas if not any(s in d[0] for s in _EXCLUDE_DATA_SUBSTR)]
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
@@ -95,7 +100,7 @@ exe = EXE(
     name="app_demo",
     debug=False,
     bootloader_ignore_signals=False,
-    strip=False,
+    strip=True,
     upx=True,
     console=False,  # 桌面应用不显示控制台窗口
     disable_windowed_traceback=False,
@@ -107,7 +112,7 @@ coll = COLLECT(
     a.binaries,
     a.zipfiles,
     a.datas,
-    strip=False,
+    strip=True,
     upx=True,
     upx_exclude=[],
     name="app_demo",
