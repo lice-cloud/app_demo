@@ -82,14 +82,8 @@ jobs:
   linux:
     name: Build Linux
     runs-on: ubuntu-latest
-    # Linux 构建为尽力而为：即使失败也不阻塞 Windows 发布
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
@@ -97,10 +91,15 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install system deps (GTK/WebKit for pywebview)
+      # Linux 上 pywebview 使用 GTK/WebKit 后端，需要系统提供 PyGObject 与
+      # GIR 类型库；否则冻结产物虽能生成，但运行时 import gi 失败无法启动。
+      - name: Install system deps (GTK/WebKit/PyGObject + xvfb)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-0 libwebkit2gtk-4.1-0 patchelf
+          sudo apt-get install -y \
+            libgtk-3-0 libwebkit2gtk-4.0-37 \
+            gir1.2-gtk-3.0 gir1.2-webkit2-4.0 \
+            python3-gi xvfb
 
       - name: Read version
         id: ver
@@ -118,11 +117,21 @@ jobs:
           npm ci
           npm run build
 
-      - name: Install Python deps
-        run: python -m pip install --upgrade pip fastapi uvicorn pywebview pyinstaller
+      - name: Install Python build deps
+        run: |
+          python3 -m pip install --user --upgrade pip
+          python3 -m pip install --user pyinstaller fastapi "uvicorn[standard]"
+          # pywebview 运行依赖 PyGObject，已由系统 python3-gi 提供；
+          # --no-deps 避免从 PyPI 拉取与系统 Python 不兼容的 PyGObject 轮子。
+          python3 -m pip install --user pywebview --no-deps
 
       - name: Build application
-        run: python -m PyInstaller build/pyinstaller.spec --noconfirm --distpath dist --workpath build/pyinstaller
+        run: python3 -m PyInstaller build/pyinstaller.spec --noconfirm --distpath dist --workpath build/pyinstaller
+
+      - name: Smoke test (headless via xvfb)
+        run: |
+          xvfb-run -a ./dist/app_demo/app_demo --smoke | tee smoke.log
+          grep -q "SMOKE_OK" smoke.log || { echo "冒烟自检未通过"; exit 1; }
 
       - name: Package tar.gz
         run: tar -czf "app_demo-linux-x64-${{ steps.ver.outputs.version }}.tar.gz" -C dist app_demo

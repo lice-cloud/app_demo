@@ -54,3 +54,52 @@ jobs:
         with:
           name: web_dist
           path: backend/web_dist
+
+  linux:
+    name: Build & Smoke Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install system deps (GTK/WebKit/PyGObject + xvfb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-0 libwebkit2gtk-4.0-37 \
+            gir1.2-gtk-3.0 gir1.2-webkit2-4.0 \
+            python3-gi xvfb
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install Python build deps
+        run: |
+          python3 -m pip install --user --upgrade pip
+          python3 -m pip install --user pyinstaller fastapi "uvicorn[standard]"
+          # pywebview 运行依赖 PyGObject，已由系统 python3-gi 提供；
+          # --no-deps 避免从 PyPI 拉取与系统 Python 不兼容的 PyGObject 轮子。
+          python3 -m pip install --user pywebview --no-deps
+
+      - name: Build application (PyInstaller onedir)
+        run: python3 -m PyInstaller build/pyinstaller.spec --noconfirm --distpath dist --workpath build/pyinstaller
+
+      - name: Smoke test (headless via xvfb)
+        run: |
+          xvfb-run -a ./dist/app_demo/app_demo --smoke | tee smoke.log
+          grep -q "SMOKE_OK" smoke.log || { echo "冒烟自检未通过"; exit 1; }
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/app_demo
+          if-no-files-found: error

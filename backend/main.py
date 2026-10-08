@@ -16,6 +16,7 @@ from backend import __version__
 from backend.core.config import APP_NAME
 from backend.api import api_router
 from backend.core.updater import updater, set_exit_callback
+from backend.core.win_icon import _icon_path
 
 # 打包后资源目录（PyInstaller 使用 sys._MEIPASS 解压目录）
 def get_base_dir() -> Path:
@@ -43,6 +44,31 @@ def find_free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
         return s.getsockname()[1]
+
+
+def resolve_window_icon() -> "str | None":
+    """返回适合当前平台的 webview 窗口图标路径。
+
+    - Windows：使用 .ico（Win32 任务栏图标由 win_icon 单独设置，这里也用 ico）。
+    - Linux/macOS：GTK/AppKit 需要 png，.ico 在 Linux 下 gdk-pixbuf 无法加载，
+      因此优先使用 icon.png，缺失时返回 None（使用系统默认图标）。
+    """
+    if sys.platform == "win32":
+        p = _icon_path()
+        return str(p) if p else None
+
+    # 非 Windows：找 icon.png（打包后位于 _MEIPASS / exe 目录，开发时位于仓库 build/）
+    if getattr(sys, "frozen", False):
+        candidates = [
+            Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent)) / "icon.png",
+            Path(sys.executable).parent / "icon.png",
+        ]
+    else:
+        candidates = [Path(__file__).resolve().parents[2] / "build" / "icon.png"]
+    for c in candidates:
+        if c.is_file():
+            return str(c)
+    return None
 
 
 app = FastAPI(title=APP_NAME, version=__version__)
@@ -79,7 +105,7 @@ def run_update_check():
         print(f"[Updater] 启动检查失败: {e}")
 
 
-def main(*, dev_mode: bool = False):
+def main(*, dev_mode: bool = False, smoke: bool = False):
     # 0. 核对待应用更新（若上次更新已生效则清理暂存）
     updater.reconcile_pending_on_startup()
 
@@ -125,6 +151,51 @@ def main(*, dev_mode: bool = False):
         min_size=(900, 600),
     )
 
+    # 应用图标（Windows 任务栏/标题栏；其余平台由系统/窗口管理器处理）
+    from backend.core.win_icon import set_window_icon
+
+    icon_path = _icon_path()
+    _debug_log(f"版本: {__version__} | pywebview: {getattr(webview, '__version__', 'unknown')}")
+    _debug_log(f"应用图标路径: {icon_path}")
+    window_icon = resolve_window_icon()
+
+    # ── 冒烟自检（CI / 本地验证冻结产物可启动） ──
+    if smoke:
+        import urllib.request as _urllib
+
+        health_ok = False
+        try:
+            with _urllib.urlopen(
+                f"http://127.0.0.1:{port}/api/v1/health", timeout=5
+            ) as resp:
+                health_ok = resp.status == 200
+        except Exception as e:
+            _debug_log(f"smoke 健康检查失败: {e}")
+            print(f"[smoke] 健康检查失败: {e}")
+
+        webview_ok = True
+        if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
+            def _smoke_quit():
+                import time
+                time.sleep(2)
+                try:
+                    window.destroy()
+                except Exception:
+                    pass
+
+            try:
+                webview.start(_smoke_quit, icon=window_icon)
+            except Exception as e:
+                webview_ok = False
+                _debug_log(f"smoke webview 初始化失败: {e}")
+                print(f"[smoke] webview 初始化失败: {e}")
+        else:
+            print("[smoke] 无 DISPLAY，跳过 webview 初始化检查")
+
+        success = health_ok and webview_ok
+        print("SMOKE_OK" if success else "SMOKE_FAIL")
+        sys.exit(0 if success else 1)
+
     def _request_exit():
         """供更新完成后重启调用：关闭窗口并确保进程退出。"""
         try:
@@ -142,11 +213,6 @@ def main(*, dev_mode: bool = False):
 
     # pywebview 的 WinForms 后端在创建窗口时会读取 _state['icon'] 设置 Form.Icon，
     # 任务栏/标题栏图标即来源于此。webview.start 的 icon 参数会写入 _state['icon']。
-    from backend.core.win_icon import _icon_path, set_window_icon
-
-    icon_path = _icon_path()
-    _debug_log(f"版本: {__version__} | pywebview: {getattr(webview, '__version__', 'unknown')}")
-    _debug_log(f"应用图标路径: {icon_path}")
 
     def _apply_window_icon_after_shown():
         """窗口显示后再发送 WM_SETICON，确保句柄已存在。"""
@@ -160,7 +226,7 @@ def main(*, dev_mode: bool = False):
     # 启动兜底线程，让它在窗口显示后执行
     threading.Thread(target=_apply_window_icon_after_shown, daemon=True).start()
 
-    webview.start(icon=str(icon_path) if icon_path else None)
+    webview.start(icon=window_icon)
 
 
 if __name__ == "__main__":
@@ -168,5 +234,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="app_demo 桌面应用")
     parser.add_argument("--dev", action="store_true", help="开发模式，加载 vite dev server")
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="冒烟自检：启动后端并校验可运行后退出（CI/本地验证冻结产物）",
+    )
     args = parser.parse_args()
-    main(dev_mode=args.dev)
+    main(dev_mode=args.dev, smoke=args.smoke)

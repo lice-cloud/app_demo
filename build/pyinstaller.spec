@@ -29,6 +29,11 @@ ICON_SRC = ROOT / "build" / "icon.ico"
 if ICON_SRC.exists():
     datas.append((str(ICON_SRC), "."))
 
+# Linux/macOS 窗口图标：GTK/AppKit 需要 png，.ico 在 Linux 下 gdk-pixbuf 无法加载
+ICON_PNG = ROOT / "build" / "icon.png"
+if ICON_PNG.exists():
+    datas.append((str(ICON_PNG), "."))
+
 # 隐式导入（FastAPI/uvicorn/pywebview 常见子模块）
 hiddenimports = [
     "uvicorn",
@@ -44,6 +49,9 @@ hiddenimports = [
     "uvicorn.lifespan.on",
     "webview",
     "webview.platforms",
+    # Linux 后端（gtk 由 guilib 在运行时动态 import，PyInstaller 无法静态发现，必须显式声明）
+    "webview.platforms.gtk",
+    # Windows 后端
     "webview.platforms.edgechromium",
     "webview.platforms.winforms",
     "clr_loader",
